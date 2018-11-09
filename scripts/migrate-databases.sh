@@ -10,18 +10,6 @@ db_name=`echo $credentials | jq -r '.name'`
 db_username=`echo $credentials | jq -r '.username'`
 db_password=`echo $credentials | jq -r '.password'`
 
-echo "ip_address"
-echo $ip_address
-
-echo "db_name"
-echo $db_name
-
-echo "db_username"
-echo $db_username
-
-echo "db_password"
-echo $db_password
-
 echo "Opening ssh tunnel to $ip_address"
 cf ssh -N -L 63306:$ip_address:3306 pal-tracker &
 cf_ssh_pid=$!
@@ -32,5 +20,13 @@ sleep 5
 flyway-*/flyway -url="jdbc:mysql://127.0.0.1:63306/$db_name" -locations=filesystem:$2/databases/tracker -user=$db_username -password=$db_password migrate
 
 sleep 5
+echo "Trying to open tunnel again"
+cf ssh -N -L 63306:$ip_address:3306 pal-tracker &
+cf_ssh_pid=$!
+
+echo "Waiting for tunnel"
+sleep 5
+
+flyway-*/flyway -url="jdbc:mysql://127.0.0.1:63306/$db_name" -locations=filesystem:$2/databases/tracker -user=$db_username -password=$db_password migrate
 
 kill -STOP $cf_ssh_pid
